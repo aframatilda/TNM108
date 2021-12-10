@@ -1,84 +1,63 @@
-from sklearn.feature_extraction.text import CountVectorizer 
-from sklearn.feature_extraction.text import TfidfTransformer
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity 
-from sklearn.datasets import fetch_20newsgroups
-import math
+from sklearn.metrics.pairwise import cosine_similarity, euclidean_distances
 import pandas as pd
-import ssl
-ssl._create_default_https_context = ssl._create_unverified_context
-from sklearn.feature_extraction.text import CountVectorizer 
-from sklearn.feature_extraction.text import TfidfTransformer
-from sklearn.naive_bayes import MultinomialNB
 
-d1 = "The sky is blue."
-d2 = "The sun is bright."
-d3 = "The sun in the sky is bright."
-d4 = "We can see the shining sun, the bright sun." 
-Z = (d1,d2,d3,d4)
+df = pd.read_csv(
+    "/Users/afra/Desktop/Dokument/TNM108 - Maskininlärning/Projekt/data.csv")
+# Features
 
-vectorizer = CountVectorizer()
+print(df.loc[1394, :])
+print(df.loc[1188, :])
 
-my_stop_words={"the","is"}
-my_vocabulary={'blue': 0, 'sun': 1, 'bright': 2, 'sky': 3}
-vectorizer=CountVectorizer(stop_words=my_stop_words,vocabulary=my_vocabulary)
+# print(df.columns)
 
-smatrix = vectorizer.transform(Z)
-#print(smatrix)
+######## DATA PRE-PROCESSING ########
 
-matrix = smatrix.todense()
-#print(matrix)
+# Dropping unnecessary features
+# df = df.drop(["Unnamed: 0", "duration_ms", "key",
+#              "mode" "time_signature", "target"])
+# print(df.columns)
 
-tfidf_transformer = TfidfTransformer(norm="l2")
-tfidf_transformer.fit(smatrix)
+# # Checking missing values
 
-# print idf values
-feature_names = vectorizer.get_feature_names_out()
-df_idf=pd.DataFrame(tfidf_transformer.idf_, index=feature_names,columns=["idf_weights"])
-# sort ascending
-df_idf.sort_values(by=['idf_weights'])
 
-# tf-idf scores
-tf_idf_vector = tfidf_transformer.transform(smatrix)
+# def display_missing(df):
+#     for col in df.columns.tolist():
+#         print('{} column missing values: {}'.format(
+#             col, df[col].isnull().sum()))
+#     print('\n')
 
-# get tfidf vector for first document
-first_document = tf_idf_vector[0] # first document "The sky is blue."
-# print the scores
-df=pd.DataFrame(first_document.T.todense(), index=feature_names, columns=["tfidf"]) 
-df.sort_values(by=["tfidf"],ascending=False)
 
-tfidf_vectorizer = TfidfVectorizer()
-tfidf_matrix = tfidf_vectorizer.fit_transform(Z)
-#print(tfidf_matrix.shape)
+# display_missing(df)
 
-cos_similarity = cosine_similarity(tfidf_matrix[0], tfidf_matrix) 
-#print(cos_similarity)
+######## COSINE SIMILARITY ########
 
-# Take the cos similarity of the third document (cos similarity=0.52)
-angle_in_radians = math.acos(0.52)
-#print(math.degrees(angle_in_radians))
 
-data = fetch_20newsgroups()
-#print(data.target_names)
+def rank_song_similarity_by_measure(data, song, artist):
 
-my_categories = ['rec.sport.baseball','rec.motorcycles','sci.space','comp.graphics']
-train = fetch_20newsgroups(subset='train', categories=my_categories)
-test = fetch_20newsgroups(subset='test', categories=my_categories)
+    song_and_artist_data = data[(data['artist'] == artist) & (
+        data['song_title'] == song)]
 
-# print(len(train.data))
-# print(len(test.data))
-# print(train.data[9])
+    similarity_data = data.copy()
 
-cv = CountVectorizer() 
-X_train_counts=cv.fit_transform(train.data)
-tfidf_transformer = TfidfTransformer()
-X_train_tfidf=tfidf_transformer.fit_transform(X_train_counts)
+    data_values = similarity_data.loc[:, [
+        'acousticness', 'danceability', 'energy', 'liveness', 'speechiness', 'valence']]
 
-model = MultinomialNB().fit(X_train_tfidf, train.target)
+    similarity_data['Similarity'] = cosine_similarity(
+        data_values, data_values.to_numpy()[song_and_artist_data.index[0], None]).squeeze()
 
-docs_new = ['Pierangelo is a really good baseball player','Maria rides her motorcycl e', 'OpenGL on the GPU is fast', 'Pierangelo rides his motorcycle and goes to play f ootball since he is a good football player too.']
-X_new_counts = cv.transform(docs_new)
-X_new_tfidf = tfidf_transformer.transform(X_new_counts)
-predicted = model.predict(X_new_tfidf)
-for doc, category in zip(docs_new, predicted):
-    print('%r => %s' % (doc, train.target_names[category]))
+    similarity_data.rename(
+        columns={'song_title': f'Song', 'artist': f'Artist'}, inplace=True)
+
+    similar_song = similarity_data.sort_values(
+        by='Similarity', ascending=False)
+
+    print(f'Songs Similar to {song}')
+    similar_song = similar_song[['Artist', 'Song', 'Similarity']]
+
+    similar_song.reset_index(drop=True, inplace=True)
+
+    return similar_song.iloc[1:5]
+
+
+print(rank_song_similarity_by_measure(
+    df, "Turn Down for What", "DJ Snake"))
