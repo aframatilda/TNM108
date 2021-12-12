@@ -10,14 +10,14 @@ from sklearn.metrics.pairwise import cosine_similarity
 import pandas as pd
 
 raw_data_with_measures = pd.read_csv(
-    "/Users/afra/Desktop/Dokument/TNM108 - Maskininlärning/Projekt/SpotifyFeatures.csv")
+    "/Users/afra/Desktop/Dokument/TNM108 - Maskininlärning/Github/TNM108/Project/SpotifyFeatures.csv")
 
-#print(raw_data_with_measures.head())
+print(raw_data_with_measures.info())
 
 ################################################### DATA PRE-PROCESSING ###################################################
 
 #Dropping unnecessary columns
-raw_data_with_measures = raw_data_with_measures.drop(["genre", "popularity", "duration_ms", "key", "time_signature"], axis="columns")
+raw_data_with_measures = raw_data_with_measures.drop(["genre", "popularity", "duration_ms", "key", "time_signature", "mode"], axis="columns")
 
 #Dropping duplicate values
 raw_data_with_measures = raw_data_with_measures.drop_duplicates(subset=['track_id'])
@@ -31,22 +31,22 @@ def display_missing(data):
 display_missing(raw_data_with_measures)
 
 #Scaling the data
-song_data = raw_data_with_measures.loc[:, [
-    'acousticness', 'danceability', 'energy', 'liveness', 'speechiness', 'valence']]
+song_data = raw_data_with_measures.loc[:, ['acousticness', 'danceability', 'energy', 'liveness', 'speechiness', 'valence', 'tempo', 'instrumentalness', 'loudness']]
 
 scaler = MinMaxScaler()
 song_features = pd.DataFrame()
 
 for col in song_data.iloc[:, :].columns:
-    scaler.fit(song_data[[col]])
+    scaler.fit(song_data[[col]].values)
     song_features[col] = scaler.transform(song_data[col].values.reshape(-1, 1)).ravel()
 
 #Merging the new scaled data to the original datafile and dropping the unscaled data. final_merge_df is our new datafile.
-data_to_merge = raw_data_with_measures.drop(['acousticness', 'danceability', 'energy', 'liveness', 'speechiness', 'valence'], axis="columns")
+data_to_merge = raw_data_with_measures.drop(['acousticness', 'danceability', 'energy', 'liveness', 'speechiness', 'valence', 'tempo', 'instrumentalness', 'loudness'], axis="columns")
 final_merge_df = data_to_merge.join(song_features).dropna()
 
-# print(df.loc[1152, :])
-# print(df.loc[770, :])
+print(final_merge_df.loc[1111, :])
+print("")
+print(final_merge_df.loc[9876, :])
 
 ################################################### COSINE SIMILARITY ###################################################
 
@@ -59,13 +59,13 @@ def rank_song_similarity_by_measure(data, song, artist):
     song = artist.loc[artist['Song'] == song]
 
     #Creating new data including only the chosen song attributes 
-    song_and_artist_data = song.drop(["Song", "Artist", "track_id", "instrumentalness", "loudness", "tempo", "mode"], axis="columns")
+    song_and_artist_data = song.drop(["Song", "Artist", "track_id"], axis="columns")
 
     #Copy of input data
     similar_data = data.copy()
 
     #Picking out the chosen song attributes from the input data
-    data_values = similar_data.loc[:, ['acousticness', 'danceability', 'energy', 'liveness', 'speechiness', 'valence']]
+    data_values = similar_data.loc[:, ['acousticness', 'danceability', 'energy', 'liveness', 'speechiness', 'valence','tempo', 'instrumentalness', 'loudness']]
 
     #Cosine similarity
     cos_sim = cosine_similarity(song_and_artist_data, data_values)
@@ -81,5 +81,4 @@ def rank_song_similarity_by_measure(data, song, artist):
         print("") 
         cos_sim[0][most_similar] = 0
 
-rank_song_similarity_by_measure(final_merge_df, "Material Girl", "Madonna")
-
+rank_song_similarity_by_measure(final_merge_df, "Everlong", "Foo Fighters")
