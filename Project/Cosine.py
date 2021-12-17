@@ -44,9 +44,9 @@ for col in song_data.iloc[:, :].columns:
 data_to_merge = raw_data_with_measures.drop(['acousticness', 'danceability', 'energy', 'liveness', 'speechiness', 'valence', 'tempo', 'instrumentalness', 'loudness'], axis="columns")
 final_merge_df = data_to_merge.join(song_features).dropna()
 
-print(final_merge_df.loc[1111, :])
+print(final_merge_df.loc[166234, :])
 print("")
-print(final_merge_df.loc[9876, :])
+print(final_merge_df.loc[4157, :])
 
 ################################################### COSINE SIMILARITY ###################################################
 
@@ -81,4 +81,5 @@ def rank_song_similarity_by_measure(data, song, artist):
         print("") 
         cos_sim[0][most_similar] = 0
 
-rank_song_similarity_by_measure(final_merge_df, "Everlong", "Foo Fighters")
+rank_song_similarity_by_measure(final_merge_df, "You Give Love A Bad Name", "Bon Jovi")
+
